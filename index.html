@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>J.A.R.V.I.S.</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@400;600&family=Share+Tech+Mono&display=swap">
+<style>
+:root{--bg:#030a12;--panel:rgba(8,28,46,.6);--ink:#d9f6ff;--dim:#6f9bb0;--acc:rgb(63,224,255);--line:rgba(63,224,255,.3);--glow:rgba(63,224,255,.45);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#e8f2f7;--panel:rgba(255,255,255,.7);--ink:#082030;--dim:#4a6b7c;--acc:rgb(10,127,168);--line:rgba(10,127,168,.35);--glow:rgba(10,127,168,.3)}}
+:root[data-theme="dark"]{--bg:#030a12}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Rajdhani","Segoe UI",system-ui,sans-serif;font-size:17px}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/44px 44px,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/44px 44px;opacity:.28;-webkit-mask:radial-gradient(ellipse at 50% 35%,#000,transparent 75%);mask:radial-gradient(ellipse at 50% 35%,#000,transparent 75%)}
+#bg{position:fixed;inset:0;z-index:-1;width:100%;height:100%}
+.mono{font-family:"Share Tech Mono",ui-monospace,Menlo,monospace}
+main{max-width:760px;margin:0 auto;padding:14px;display:grid;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:8px}
+h1{margin:0;font:600 1.15rem "Orbitron","Rajdhani",sans-serif;letter-spacing:.32em;color:var(--acc);text-shadow:0 0 14px var(--glow)}
+.clk{text-align:right;line-height:1.1}.clk b{font-size:1.5rem;font-weight:400;display:block}.clk small{color:var(--dim)}
+.stage{text-align:center}
+#rc{display:block;margin:0 auto;filter:drop-shadow(0 0 18px var(--glow))}
+#state{margin-top:2px;color:var(--acc);letter-spacing:.12em}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:12px;position:relative;backdrop-filter:blur(6px)}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--acc)}
+.panel::before{top:-2px;left:-2px;border-right:0;border-bottom:0}
+.panel::after{bottom:-2px;right:-2px;border-left:0;border-top:0}
+.cap{margin:0 0 8px;color:var(--dim);font-size:.85rem}
+.tele{display:grid;grid-template-columns:1fr auto;gap:14px}
+.stats{display:grid;gap:9px}
+.stat{display:grid;grid-template-columns:64px 1fr 40px;gap:8px;align-items:center;font-size:.9rem}
+.bar{height:8px;background:repeating-linear-gradient(90deg,rgba(127,127,127,.25) 0 6px,transparent 6px 8px)}
+.bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--acc) 0 6px,transparent 6px 8px);filter:drop-shadow(0 0 4px var(--glow));transition:width .8s}
+.stat span:last-child{text-align:right;color:var(--dim)}
+#hex{margin:0;font-size:.68rem;line-height:1.5;color:var(--dim);white-space:pre;opacity:.8}
+#log{height:220px;overflow-y:auto;font-size:.95rem;line-height:1.45;display:flex;flex-direction:column;gap:6px}
+#log p{margin:0}.u{color:var(--dim)}.j b{color:var(--acc);font-weight:400}
+form{display:flex;gap:8px;margin-top:10px}
+input,button,select{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:3px;padding:10px 12px}
+select option{color:#000}
+input{flex:1;min-width:0}
+button{cursor:pointer;color:var(--acc)}
+button:hover,button[aria-pressed="true"]{background:var(--glow)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.row button{padding:5px 10px;font-size:.85rem}
+.vrow{display:flex;gap:8px;margin-top:10px}.vrow select{flex:1;min-width:0;padding:7px 8px;font-size:.85rem}.vrow button{padding:7px 10px;font-size:.85rem}
+#boot{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;align-content:center;padding:28px;color:var(--acc);font-size:.95rem;line-height:1.9;transition:opacity .7s}
+#boot.off{opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="boot" class="mono" aria-hidden="true"></div>
+<main>
+  <header class="top"><h1>J.A.R.V.I.S.</h1><div class="clk"><b id="clock" class="mono">--:--:--</b><small id="date"></small></div></header>
+
+  <section class="stage"><canvas id="rc" aria-label="Kernreaktor"></canvas><div id="state" class="mono">Bereit, Sir.</div></section>
+
+  <section class="panel">
+    <p class="cap">Telemetrie (simuliert)</p>
+    <div class="tele"><div class="stats mono" id="stats"></div><pre id="hex" class="mono" aria-hidden="true"></pre></div>
+  </section>
+
+  <section class="panel">
+    <div id="log" class="mono" role="log" aria-live="polite"></div>
+    <form id="f" autocomplete="off">
+      <input id="in" class="mono" placeholder="Befehl eingeben …" aria-label="Befehl">
+      <button type="submit">Senden</button>
+      <button type="button" id="mic" aria-label="Einzelne Spracheingabe">Mic</button>
+      <button type="button" id="talk" aria-pressed="false">Gespräch</button>
+    </form>
+    <div class="row" id="chips"></div>
+    <div class="vrow"><select id="vsel" aria-label="Stimme"></select><button type="button" id="vbtn" aria-pressed="false">Stimme: aus</button></div>
+  </section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),TAU=Math.PI*2,pad=n=>String(n).padStart(2,'0');
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BLUE=matchMedia('(prefers-color-scheme: light)').matches?'10,127,168':'63,224,255';
+let rgb=BLUE,mode='idle',t=0,amp=.1,W=300;
+let voice=false,speaking=false,busy=false,talk=false,rec=null,sample=null,voices=[],chosen=null;
+const hist=[];
+const SYS='Du bist J.A.R.V.I.S., der souveräne, trocken-witzige KI-Butler aus Iron Man. Antworte immer auf Deutsch, höchstens zwei kurze Sätze, ohne Markdown, Listen oder Emojis, weil deine Antwort vorgelesen wird. Sprich den Nutzer mit „Sir“ an. Du hast keinen Zugriff auf Echtzeitdaten wie Wetter oder Nachrichten.';
+if(window.claude&&claude.use)claude.use('sample').then(s=>{sample=s}).catch(()=>{});
+const col=a=>`rgba(${rgb},${a})`;
+function setColor(c){rgb=c;const r=document.documentElement.style;r.setProperty('--acc','rgb('+c+')');r.setProperty('--glow','rgba('+c+',.45)');r.setProperty('--line','rgba('+c+',.3)')}
+const LABEL={idle:'Bereit, Sir.',listen:'Ich höre zu …',think:'Denke nach …',talk:'Spreche …'};
+function setMode(m){mode=m;$('#state').textContent=LABEL[m]}
+
+/* Reaktor */
+const rc=$('#rc'),x=rc.getContext('2d');
+function size(){W=Math.min(innerWidth*.9,400);const d=devicePixelRatio||1;rc.style.width=rc.style.height=W+'px';rc.width=rc.height=W*d;x.setTransform(d,0,0,d,0,0)}
+function ring(r,lw,dash,rot,a){x.save();x.rotate(rot);x.setLineDash(dash);x.lineWidth=lw;x.strokeStyle=col(a);x.beginPath();x.arc(0,0,r,0,TAU);x.stroke();x.restore()}
+function reactor(){
+  const spin={idle:1,listen:1.4,think:4,talk:1.8}[mode];t+=.016*spin;
+  const tg=mode==='listen'?.3+.3*Math.abs(Math.sin(t*4)*Math.cos(t*1.3)):mode==='talk'?.55+.4*Math.abs(Math.sin(t*7)):mode==='think'?.3:.12;
+  amp+=(tg-amp)*.12;
+  const w=W;x.clearRect(0,0,w,w);x.save();x.translate(w/2,w/2);
+  const g=x.createRadialGradient(0,0,0,0,0,w*.34);g.addColorStop(0,col(.5+amp*.35));g.addColorStop(1,col(0));
+  x.fillStyle=g;x.beginPath();x.arc(0,0,w*.34,0,TAU);x.fill();
+  x.setLineDash([]);x.strokeStyle=col(.9);x.lineWidth=2;x.lineCap='round';
+  for(let i=0;i<96;i++){const a=i/96*TAU,v=(Math.sin(i*.7+t*3)+Math.sin(i*.31-t*2.1)+2)/4,r0=w*.26,r1=r0+w*.012+v*amp*w*.1;
+    x.beginPath();x.moveTo(Math.cos(a)*r0,Math.sin(a)*r0);x.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);x.stroke()}
+  ring(w*.33,1.5,[3,9],t*.4,.7);ring(w*.38,5,[46,16],-t*.3,.55);ring(w*.45,1,[2,5],t*.2,.6);
+  x.save();x.rotate(-t*.1);x.lineWidth=1.5;
+  for(let i=0;i<120;i++){const a=i/120*TAU,L=i%5?w*.012:w*.03;x.strokeStyle=col(i%5?.35:.85);
+    x.beginPath();x.moveTo(Math.cos(a)*w*.488,Math.sin(a)*w*.488);x.lineTo(Math.cos(a)*(w*.488-L),Math.sin(a)*(w*.488-L));x.stroke()}
+  x.restore();
+  if(x.createConicGradient){x.save();x.rotate(t*1.2);const cg=x.createConicGradient(0,0,0);
+    cg.addColorStop(0,col(0));cg.addColorStop(.86,col(0));cg.addColorStop(1,col(.45));
+    x.fillStyle=cg;x.beginPath();x.arc(0,0,w*.45,0,TAU);x.fill();x.restore()}
+  x.save();x.rotate(t*.5);x.strokeStyle=col(.9);x.lineWidth=2;x.beginPath();
+  for(let i=0;i<3;i++){const a=i/3*TAU-Math.PI/2;x.lineTo(Math.cos(a)*w*.15,Math.sin(a)*w*.15)}x.closePath();x.stroke();x.restore();
+  const cr=w*(.065+amp*.02),cg2=x.createRadialGradient(0,0,0,0,0,cr);cg2.addColorStop(0,'#fff');cg2.addColorStop(.5,col(1));cg2.addColorStop(1,col(.2));
+  x.fillStyle=cg2;x.beginPath();x.arc(0,0,cr,0,TAU);x.fill();
+  x.restore();
+}
+
+/* Hintergrund */
+const bg=$('#bg'),b=bg.getContext('2d');let P=[];
+function bsize(){bg.width=innerWidth;bg.height=innerHeight;P=Array.from({length:Math.min(80,innerWidth/10|0)},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4}))}
+function bgframe(){
+  b.clearRect(0,0,bg.width,bg.height);
+  for(const p of P){if(!still){p.x=(p.x+p.vx+bg.width)%bg.width;p.y=(p.y+p.vy+bg.height)%bg.height}
+    b.fillStyle=col(.6);b.fillRect(p.x,p.y,2,2)}
+  b.lineWidth=1;
+  for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const d=Math.hypot(P[i].x-P[j].x,P[i].y-P[j].y);
+    if(d<110){b.strokeStyle=col(.18*(1-d/110));b.beginPath();b.moveTo(P[i].x,P[i].y);b.lineTo(P[j].x,P[j].y);b.stroke()}}
+}
+function loop(){reactor();bgframe();if(!still)requestAnimationFrame(loop)}
+addEventListener('resize',()=>{size();bsize();if(still)loop()});
+size();bsize();loop();
+
+/* Uhr, Telemetrie */
+function tick(){const d=new Date();$('#clock').textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());$('#date').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'})}
+tick();setInterval(tick,1000);
+const names=['Reaktor','CPU','Speicher','Netz','Schilde'],vals=[96,34,58,71,100];
+$('#stats').innerHTML=names.map((n,i)=>`<div class="stat"><span>${n}</span><div class="bar"><i id="b${i}" style="width:${vals[i]}%"></i></div><span id="v${i}">${vals[i]}%</span></div>`).join('');
+setInterval(()=>{vals.forEach((v,i)=>{if(i===4)return;vals[i]=Math.max(8,Math.min(100,v+Math.round((Math.random()-.5)*14)));$('#b'+i).style.width=vals[i]+'%';$('#v'+i).textContent=vals[i]+'%'})},2200);
+const hx=(()=>Math.floor(Math.random()*65535).toString(16).padStart(4,'0'));
+setInterval(()=>{$('#hex').textContent=Array.from({length:6},()=>hx()+' '+hx()+' '+hx()).join('\n')},140);
+
+/* Stimme */
+function loadVoices(){
+  if(!('speechSynthesis' in window))return;
+  const male=/markus|yannick|conrad|stefan|florian|killian|hans|jonas|male/i,good=/premium|enhanced|neural|online|natural|google/i;
+  const sc=v=>(good.test(v.name)?3:0)+(male.test(v.name)?2:0)+(v.localService?0:1);
+  voices=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith('de')).sort((a,b)=>sc(b)-sc(a));
+  $('#vsel').innerHTML=voices.map((v,i)=>`<option value="${i}">${v.name}</option>`).join('')||'<option>Standardstimme</option>';
+  chosen=voices[$('#vsel').value||0]||null;
+}
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+$('#vsel').addEventListener('change',e=>{chosen=voices[e.target.value]||null;voice=true;syncVoice();speak('Stimme gewechselt, Sir.')});
+function syncVoice(){$('#vbtn').textContent='Stimme: '+(voice?'an':'aus');$('#vbtn').setAttribute('aria-pressed',voice)}
+$('#vbtn').addEventListener('click',()=>{voice=!voice;syncVoice();if(voice)speak('Sprachausgabe aktiv.');else if('speechSynthesis' in window)speechSynthesis.cancel()});
+function speak(text,done){
+  if(!('speechSynthesis' in window)){done&&done();return}
+  const u=new SpeechSynthesisUtterance(text.replace(/J\.A\.R\.V\.I\.S\./g,'Jarvis').replace(/<[^>]+>/g,''));
+  u.lang='de-DE';if(chosen)u.voice=chosen;u.rate=.98;u.pitch=.9;
+  speaking=true;u.onstart=()=>setMode('talk');
+  u.onend=u.onerror=()=>{speaking=false;setMode('idle');done&&done()};
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+
+/* Ausgabe */
+const log=$('#log'),inp=$('#in');
+function add(cls,html){const p=document.createElement('p');p.className=cls;p.innerHTML=html;log.appendChild(p);log.scrollTop=log.scrollHeight}
+function say(t){add('j','<b>JARVIS ›</b> '+t);if(voice)speak(t,listen);else listen()}
+
+const jokes=['Ich würde Ihnen einen Witz über UDP erzählen, aber Sie würden ihn vielleicht nicht bekommen.','Warum verwechseln Programmierer Halloween und Weihnachten? Weil Oct 31 gleich Dec 25 ist.'];
+const cmds=[
+ [/hilfe|befehle|was kannst/,()=>'Verfügbar: zeit, datum, status, scan, wer bist du, farbe rot/blau/gold, stimme an/aus, witz. Mit „Gespräch“ unterhalten wir uns freihändig, und alles andere beantworte ich frei.'],
+ [/zeit|uhr/,()=>'Es ist '+new Date().toLocaleTimeString('de-DE')+' Uhr.'],
+ [/datum|welcher tag/,()=>'Heute ist '+new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'.'],
+ [/status|bericht/,()=>`Alle Systeme laufen. Reaktor ${vals[0]} Prozent, CPU ${vals[1]} Prozent, Netzwerk ${vals[3]} Prozent.`],
+ [/scan/,()=>{setMode('think');setTimeout(()=>{if(!speaking)setMode('idle')},2500);return 'Umgebungsscan läuft. Keine Bedrohungen erkannt.'}],
+ [/wer bist du|dein name/,()=>'Ich bin Jarvis, Ihre Oberfläche für Befehle und Statusberichte.'],
+ [/rot/,()=>{setColor('255,75,75');return 'Farbschema Rot aktiviert.'}],
+ [/gold|gelb/,()=>{setColor('255,194,71');return 'Farbschema Gold aktiviert.'}],
+ [/blau|standard/,()=>{setColor(BLUE);return 'Farbschema Blau aktiviert.'}],
+ [/stimme (an|ein)|sprich/,()=>{voice=true;syncVoice();return 'Sprachausgabe ist an.'}],
+ [/stimme aus|still/,()=>{voice=false;syncVoice();'speechSynthesis' in window&&speechSynthesis.cancel();return 'Sprachausgabe ist aus.'}],
+ [/witz/,()=>jokes[Math.floor(Math.random()*jokes.length)]],
+ [/hallo|hi\b|guten/,()=>'Guten Tag, Sir. Wie kann ich helfen?']
+];
+async function ask(q){
+  const ctx=hist.slice(-8).join('\n');
+  const r=await sample(SYS+'\n\nBisheriges Gespräch:\n'+(ctx||'(keins)')+'\n\nNutzer: '+q+'\nJARVIS:',{cache:false,modelTier:'quick'});
+  const a=(r.text||'').replace(/[*#_`]/g,'').trim()||'Dazu habe ich keine Antwort, Sir.';
+  hist.push('Nutzer: '+q,'JARVIS: '+a);return a;
+}
+async function run(tx){
+  add('u','› '+tx.replace(/</g,'&lt;'));
+  const q=tx.toLowerCase().trim();
+  if(talk&&/^(stopp|tschüss|ende|beenden)\b/.test(q)){stopTalk();say('Gespräch beendet. Ich bin jederzeit da, Sir.');return}
+  const m=q.split(/\s+/).length<=4&&cmds.find(c=>c[0].test(q));
+  busy=true;setMode('think');let a;
+  try{
+    if(m)a=m[1]();
+    else{
+      if(!sample&&window.claude&&claude.use){try{sample=await claude.use('sample')}catch(_){}}
+      if(sample)a=await ask(tx);
+      else a='Befehl nicht erkannt. Sagen Sie „hilfe“ für eine Liste.';
+    }
+  }catch(e){
+    if(e&&e.code==='not_granted'){sample=null;a='Die KI-Freigabe fehlt. Ich nutze nur lokale Befehle.'}
+    else a='Verbindungsproblem ('+((e&&(e.code||e.message))||'unbekannt')+'). Bitte versuchen Sie es noch einmal, Sir.';
+  }
+  busy=false;if(mode==='think'&&!/scan/.test(q))setMode('idle');
+  say(a);
+}
+$('#f').addEventListener('submit',e=>{e.preventDefault();const v=inp.value.trim();if(v){run(v);inp.value=''}});
+$('#chips').innerHTML=['status','scan','zeit','witz','farbe rot','farbe gold','farbe blau'].map(c=>`<button type="button">${c}</button>`).join('');
+$('#chips').addEventListener('click',e=>{if(e.target.tagName==='BUTTON')run(e.target.textContent)});
+
+/* Spracheingabe */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(){
+  if(!talk||busy||speaking||!SR)return;
+  rec=new SR();rec.lang='de-DE';
+  rec.onstart=()=>setMode('listen');
+  rec.onresult=e=>run(e.results[0][0].transcript);
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){stopTalk();say('Mikrofonzugriff verweigert. Erlauben Sie das Mikro in den Browser-Einstellungen oder öffnen Sie den Link direkt in Safari oder Chrome. Bis dahin: Mikrofon der Tastatur im Textfeld nutzen.');inp.focus()}};
+  rec.onend=()=>{if(talk&&!busy&&!speaking)setTimeout(listen,300)};
+  try{rec.start()}catch(_){}
+}
+function stopTalk(){
+  talk=false;try{rec&&rec.abort()}catch(_){}
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  speaking=false;setMode('idle');
+  $('#talk').setAttribute('aria-pressed','false');$('#talk').textContent='Gespräch';
+}
+$('#talk').addEventListener('click',()=>{
+  if(talk){stopTalk();return}
+  if(!SR){say('Direkte Spracherkennung gibt es in dieser Ansicht nicht. Tippen Sie ins Textfeld, nutzen Sie das Mikrofon Ihrer Tastatur und tippen Sie dann auf Senden. Oder öffnen Sie den Link in Chrome oder Safari.');inp.focus();return}
+  talk=true;voice=true;syncVoice();
+  $('#talk').setAttribute('aria-pressed','true');$('#talk').textContent='Beenden';
+  say('Ich höre zu, Sir.');
+});
+$('#mic').addEventListener('click',()=>{
+  if(!SR){say('Direkte Spracherkennung gibt es in dieser Ansicht nicht. Nutzen Sie das Mikrofon Ihrer Tastatur im Textfeld.');inp.focus();return}
+  const r=new SR();r.lang='de-DE';
+  r.onstart=()=>setMode('listen');
+  r.onend=()=>{if(mode==='listen')setMode('idle')};
+  r.onresult=e=>run(e.results[0][0].transcript);
+  try{r.start()}catch(_){}
+});
+
+/* Start */
+const boot=$('#boot'),bl=['J.A.R.V.I.S. Kernel 7.3','Arc-Reaktor … online','Sprachmodul … bereit','KI-Verbindung … geprüft','Willkommen zurück, Sir.'];
+function done(){boot.classList.add('off');say('Systeme online, Sir. Tippen Sie auf „Gespräch“, dann unterhalten wir uns freihändig.')}
+if(still)done();else bl.forEach((l,i)=>setTimeout(()=>{boot.innerHTML+='› '+l+'<br>';if(i===bl.length-1)setTimeout(done,600)},i*380));
+</script>
+</body>
+</html>
